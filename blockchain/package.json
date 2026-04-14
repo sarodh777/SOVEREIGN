@@ -1,0 +1,22 @@
+{
+  "name": "sovereign-governance",
+  "version": "1.0.0",
+  "description": "Smart contracts for Sovereign Ledger governance",
+  "main": "hardhat.config.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy-local": "hardhat run scripts/deploy.js --network localhost",
+    "node": "hardhat node"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "hardhat": "^2.22.0",
+    "ethers": "^6.11.0"
+  },
+  "keywords": ["hardhat", "ethereum", "solidity", "governance"],
+  "author": "Sovereign Ledger",
+  "license": "MIT"
+}

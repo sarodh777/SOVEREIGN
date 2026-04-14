@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sovereign Ledger - Enterprise Banking & Governance Platform" />
+    <meta name="theme-color" content="#0B0F14" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    
+    <!-- Page Title -->
+    <title>Sovereign Ledger - Enterprise Banking Platform</title>
+    
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #0B0F14 0%, #1A1F2E 50%, #0D1117 100%);
+        color: #E8EEF7;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Scrollbar Styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: rgba(11, 15, 20, 0.5);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0, 240, 255, 0.3);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 240, 255, 0.6);
+      }
+
+      /* Style Variables */
+      :root {
+        --primary: #00F0FF;
+        --primary-dark: #0CB8CC;
+        --success: #10B981;
+        --danger: #EF4444;
+        --warning: #F59E0B;
+        --info: #3B82F6;
+        --bg-primary: #0B0F14;
+        --bg-secondary: #1A1F2E;
+        --bg-tertiary: #252C3C;
+        --text-primary: #E8EEF7;
+        --text-secondary: #A0AEC0;
+        --text-muted: #718096;
+        --border-color: #2D3748;
+      }
+
+      /* Focus Styles */
+      *:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      /* Animations */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes glow {
+        0%, 100% {
+          box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 20px rgba(0, 240, 255, 0.6);
+        }
+      }
+
+      @keyframes slideInLeft {
+        from {
+          opacity: 0;
+          transform: translateX(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      body {
+        animation: fadeIn 0.5s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Main React App Root -->
+    <div id="root"></div>
+
+    <!-- React and Vite Module -->
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Loading Fallback -->
+    <noscript>
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #0B0F14 0%, #1A1F2E 50%, #0D1117 100%);
+        color: #E8EEF7;
+        font-family: 'Inter', sans-serif;
+        flex-direction: column;
+        gap: 20px;
+      ">
+        <h1 style="font-size: 32px; font-weight: 700;">Sovereign Ledger</h1>
+        <p>JavaScript is required to run this application.</p>
+        <p style="color: #A0AEC0; font-size: 14px;">Please enable JavaScript in your browser settings.</p>
+      </div>
+    </noscript>
+  </body>
+</html>
