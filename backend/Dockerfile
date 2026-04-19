@@ -4,12 +4,12 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copy pom.xml and download dependencies
-COPY backend/pom.xml .
-COPY backend/mvnw .
-COPY backend/.mvn .mvn
+COPY pom.xml .
+COPY mvnw .
+COPY .mvn .mvn
 
 # Build the application
-COPY backend/src ./src
+COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
 # Copy the built jar

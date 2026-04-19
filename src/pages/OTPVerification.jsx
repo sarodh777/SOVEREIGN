@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { KeyRound, ArrowRight, ArrowLeft, Mail } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 export default function OTPVerification() {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ export default function OTPVerification() {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/verify-otp', { email, otp });
+      const response = await api.post('/api/auth/verify-otp', { email, otp });
       localStorage.setItem('userEmail', email);
       localStorage.setItem('token', response.data.token || '');
       navigate('/dashboard');
@@ -47,7 +47,7 @@ export default function OTPVerification() {
 
     try {
       setResendStatus('Sending...');
-      await axios.post('http://localhost:8080/api/auth/request-otp', { email });
+      await api.post('/api/auth/request-otp', { email });
       setResendStatus('✓ OTP sent to your email!');
       setResendCooldown(60);
       setTimeout(() => setResendStatus(''), 5000);

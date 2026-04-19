@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Globe, ArrowRight } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function Login() {
     
     try {
       // Backend should send OTP to email
-      const response = await axios.post('http://localhost:8080/api/auth/request-otp', { email });
+      const response = await api.post('/api/auth/request-otp', { email });
       localStorage.setItem('userEmail', email);
       navigate('/otp', { state: { email } });
     } catch (error) {
@@ -28,7 +28,8 @@ export default function Login() {
 
   const handleGoogleAuth = () => {
     // Redirect to Spring Boot OAuth2 endpoint
-    window.location.href = "http://localhost:8080/oauth2/authorization/google";
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    window.location.href = `${apiUrl}/oauth2/authorization/google`;
   };
 
   return (

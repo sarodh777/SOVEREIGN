@@ -41,9 +41,10 @@ export default function Sidebar() {
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         {/* Logo Area */}
-        <div className="p-6 border-b border-[#00F0FF]/10">
-          <h1 className="text-xl font-bold tracking-[0.2em] text-[#00F0FF]">SOVEREIGN</h1>
-          <p className="text-[10px] uppercase text-[#718096] tracking-widest mt-1">Banking Platform v1.0</p>
+        <div className="p-6 border-b border-[#00F0FF]/10 flex flex-col items-center">
+          <img src="/vaultchain-logo.svg" alt="VaultChain" className="w-16 h-16 mb-3" />
+          <h1 className="text-xl font-bold tracking-[0.2em] text-[#00F0FF]">VaultChain</h1>
+          <p className="text-[10px] uppercase text-[#718096] tracking-widest mt-1">Secure Banking v1.0</p>
         </div>
 
         {/* Navigation Links */}

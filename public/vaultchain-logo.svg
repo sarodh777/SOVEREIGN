@@ -1,0 +1,32 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Shield background with gradient -->
+  <defs>
+    <linearGradient id="shieldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00F0FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0099CC;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="lockGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00F0FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00CCFF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Shield -->
+  <path d="M 100 20 L 160 50 L 160 110 C 160 150 100 180 100 180 C 100 180 40 150 40 110 L 40 50 Z" 
+        fill="url(#shieldGradient)" stroke="#00F0FF" stroke-width="2" opacity="0.9"/>
+  
+  <!-- Lock body -->
+  <rect x="75" y="95" width="50" height="45" rx="5" fill="none" stroke="url(#lockGradient)" stroke-width="3"/>
+  
+  <!-- Lock top (shackle) -->
+  <path d="M 85 95 Q 85 65 100 65 Q 115 95 115 95" 
+        fill="none" stroke="url(#lockGradient)" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Lock keyhole -->
+  <circle cx="100" cy="105" r="5" fill="none" stroke="url(#lockGradient)" stroke-width="2"/>
+  <rect x="98" y="112" width="4" height="12" fill="url(#lockGradient)"/>
+  
+  <!-- Central glow circle -->
+  <circle cx="100" cy="100" r="8" fill="#00F0FF" opacity="0.6"/>
+  <circle cx="100" cy="100" r="4" fill="#00F0FF" opacity="0.9"/>
+</svg>

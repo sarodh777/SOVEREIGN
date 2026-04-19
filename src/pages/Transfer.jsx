@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { 
   Send, ArrowRight, Wallet, Building, Link as LinkIcon, QrCode, 
   ChevronDown, CheckCircle2, Copy, AlertCircle, Loader2, ArrowLeft
@@ -34,7 +34,7 @@ export default function Transfer() {
 
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get(`http://localhost:8080/api/banking/accounts/${email}`);
+      const response = await api.get(`/api/banking/accounts/${email}`);
       if (response.data.success && response.data.accounts.length > 0) {
         setAccounts(response.data.accounts);
       } else {
