@@ -1,305 +1,274 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Plus, Building, Send, Download, Minus, FileText, Activity, 
-  CreditCard, Search, Shield, Lock, Wallet, ArrowRight, RefreshCcw, 
-  ShieldAlert, Fingerprint, User, Link as LinkIcon, PieChart as PieChartIcon
+import {
+  Building, Send, Download, Minus, Activity, CreditCard, Shield,
+  Wallet, ArrowRight, RefreshCcw, Copy, CheckCircle2, Plus, ArrowUpRight, ArrowDownRight
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import api from '../api';
 
 export default function BankingDashboard() {
-  const email = localStorage.getItem('userEmail') || 'operator@institution.com';
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('All');
+  const [accounts, setAccounts]       = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [copied, setCopied]           = useState('');
+  const [kycStatus, setKycStatus]     = useState('NOT_SUBMITTED');
+  const [creating, setCreating]       = useState(false);
+  const [createError, setCreateError] = useState('');
 
-  // Hardcoded for presentation / demo purposes logic as backend routes may not have all fields yet
-  const accountOverview = {
-    currentBalance: 125000.50,
-    savingsBalance: 550000.00,
-    lastTx: "-₹ 5000.00 (Merchant)",
-    accountNumber: "ACC-49F1-A89",
-    ifsc: "SOVL0001429",
-    walletAddress: "0x71C...9B23",
+  const fmt = (v) => '₹ ' + Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [accRes, kycRes] = await Promise.all([
+        api.get('/api/banking/accounts'),
+        api.get('/api/kyc/status').catch(() => null)
+      ]);
+
+      if (accRes.data.success) {
+        const accs = accRes.data.accounts || [];
+        setAccounts(accs);
+        if (accs.length > 0) {
+          const txRes = await api.get(`/api/banking/transactions/${accs[0].id}`);
+          if (txRes.data.success) setTransactions(txRes.data.transactions || []);
+        }
+      }
+      if (kycRes?.data) setKycStatus(kycRes.data.status || 'NOT_SUBMITTED');
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const copyText = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopied(key);
+    setTimeout(() => setCopied(''), 2000);
   };
 
-  const analyticsData = [
-    { name: 'Income', value: 85000, color: '#10B981' },
-    { name: 'Expense', value: 32000, color: '#FF006E' },
-  ];
-
-  // Using specific presentation data overriding plain state for Hackathon demo
-  const mockTransactions = [
-    { id: '1', date: '14 Apr', type: 'Credit', amount: '5000.00', status: 'Success', ref: 'Client Payment' },
-    { id: '2', date: '13 Apr', type: 'Debit', amount: '2000.00', status: 'Pending', ref: 'Cloud Hosting' },
-    { id: '3', date: '11 Apr', type: 'Debit', amount: '1250.00', status: 'Success', ref: 'Utility Bill' },
-    { id: '4', date: '10 Apr', type: 'Credit', amount: '18000.00', status: 'Success', ref: 'Staking Reward' },
-    { id: '5', date: '08 Apr', type: 'Debit', amount: '450.00', status: 'Failed', ref: 'Grocery' },
-  ];
-
-  const filteredTransactions = mockTransactions.filter(tx => {
-    const matchesSearch = (tx.ref.toLowerCase() || '').includes(searchTerm.toLowerCase()) || tx.amount.includes(searchTerm);
-    const matchesType = typeFilter === 'All' || tx.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
-
-  const getStatusBadge = (status) => {
-    if (status === 'Success') return <span className="bg-[#10B981]/10 text-[#10B981] px-2 py-1 rounded text-xs font-bold border border-[#10B981]/20">✅ Success</span>;
-    if (status === 'Pending') return <span className="bg-[#F59E0B]/10 text-[#F59E0B] px-2 py-1 rounded text-xs font-bold border border-[#F59E0B]/20">⏳ Pending</span>;
-    return <span className="bg-[#FF006E]/10 text-[#FF006E] px-2 py-1 rounded text-xs font-bold border border-[#FF006E]/20">❌ Failed</span>;
+  const createAccount = async (type) => {
+    setCreating(true); setCreateError('');
+    try {
+      const res = await api.post('/api/banking/account/create', { accountType: type });
+      if (res.data.success) { await load(); }
+      else setCreateError(res.data.message);
+    } catch (e) {
+      setCreateError(e.response?.data?.message || 'Failed to create account');
+    }
+    setCreating(false);
   };
+
+  // Build pie chart data from real transactions
+  const credits = transactions.filter(t => t.direction === 'IN').reduce((s, t) => s + Number(t.amount), 0);
+  const debits  = transactions.filter(t => t.direction === 'OUT').reduce((s, t) => s + Number(t.amount), 0);
+  const pieData = [
+    { name: 'Credits', value: credits || 0,  color: '#10B981' },
+    { name: 'Debits',  value: debits  || 0,  color: '#FF006E' },
+  ];
+
+  const recentTx = transactions.slice(0, 5);
+  const primaryAccount = accounts[0];
 
   return (
     <div className="w-full min-h-screen p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Title Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-[#00F0FF]/10 pb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-[#E8EEF7] tracking-tight flex items-center gap-2">
-              <Building className="w-8 h-8 text-[#00F0FF]" />
-              Core Banking
-            </h1>
-            <p className="text-[#A0AEC0] mt-1">Manage accounts, transfers, and ledger security.</p>
+
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-[#00F0FF]/10">
+          <div className="flex items-center gap-3">
+            <Building className="w-7 h-7 text-[#00F0FF]" />
+            <div>
+              <h1 className="text-2xl font-bold text-[#E8EEF7]">Banking Overview</h1>
+              <p className="text-[#A0AEC0] text-sm">Manage all your accounts and cards</p>
+            </div>
           </div>
-          
-          {/* Quick Banking Actions (Float Right Desktop) */}
-          <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
-            <Link to="/deposit" className="flex items-center gap-2 bg-[#00F0FF]/10 border border-[#00F0FF]/20 hover:bg-[#00F0FF]/20 text-[#00F0FF] px-4 py-2 rounded-lg transition text-sm font-semibold">
-              <Plus className="w-4 h-4" /> Add Money
-            </Link>
-            <Link to="/transfer" className="flex items-center gap-2 bg-[#0B0F14] border border-white/10 hover:border-[#F59E0B]/50 text-[#A0AEC0] hover:text-[#F59E0B] px-4 py-2 rounded-lg transition text-sm font-semibold">
-              <Send className="w-4 h-4" /> Send Money
-            </Link>
-            <button className="flex items-center gap-2 bg-[#0B0F14] border border-white/10 hover:border-[#10B981]/50 text-[#A0AEC0] hover:text-[#10B981] px-4 py-2 rounded-lg transition text-sm font-semibold">
-              <Download className="w-4 h-4" /> Request Money
-            </button>
-            <button className="flex items-center gap-2 bg-[#0B0F14] border border-white/10 hover:border-[#FF006E]/50 text-[#A0AEC0] hover:text-[#FF006E] px-4 py-2 rounded-lg transition text-sm font-semibold">
-              <RefreshCcw className="w-4 h-4" /> Transfer Built-in
-            </button>
-          </div>
+          <button onClick={load} className="p-2 text-[#A0AEC0] hover:text-[#00F0FF] transition">
+            <RefreshCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        {/* TOP LAYER: Overview Cards (4 cols) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-[#00F0FF]/20 rounded-xl p-6 shadow-lg shadow-[#00F0FF]/5 relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-[#00F0FF]/10 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2"></div>
-            <p className="text-[#A0AEC0] text-sm font-semibold mb-1 uppercase tracking-wider">Current Balance</p>
-            <h2 className="text-3xl font-bold text-[#E8EEF7]">₹ 1,25,000</h2>
-            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-[#10B981] bg-[#10B981]/10 w-max px-2 py-1 rounded">
-              <span>Checking Account</span>
+        {/* KYC Alert */}
+        {kycStatus !== 'VERIFIED' && (
+          <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${kycStatus === 'PENDING' ? 'bg-[#F59E0B]/5 border-[#F59E0B]/20' : 'bg-[#FF006E]/5 border-[#FF006E]/20'}`}>
+            <div className="flex items-center gap-3">
+              <Shield className={`w-5 h-5 shrink-0 ${kycStatus === 'PENDING' ? 'text-[#F59E0B]' : 'text-[#FF006E]'}`} />
+              <p className="text-sm text-[#A0AEC0]">
+                {kycStatus === 'PENDING' ? 'KYC verification is under review. High-value transactions may be limited.' : 'Complete KYC verification to unlock all banking features.'}
+              </p>
             </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-[#10B981]/20 rounded-xl p-6 shadow-lg shadow-[#10B981]/5 relative overflow-hidden">
-            <div className="absolute right-0 top-0 w-24 h-24 bg-[#10B981]/10 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2"></div>
-            <p className="text-[#A0AEC0] text-sm font-semibold mb-1 uppercase tracking-wider">Savings Account</p>
-            <h2 className="text-3xl font-bold text-[#E8EEF7]">₹ 5,50,000</h2>
-            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-[#00F0FF] bg-[#00F0FF]/10 w-max px-2 py-1 rounded">
-              <span>High-Yield</span>
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-white/5 rounded-xl p-6 shadow-lg">
-            <p className="text-[#A0AEC0] text-sm font-semibold mb-1 uppercase tracking-wider">Last Transaction</p>
-            <h2 className="text-xl font-bold text-[#FF006E]">{accountOverview.lastTx}</h2>
-            <p className="text-[#718096] text-xs mt-2">Just now</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-[#0B0F14] to-[#1A1F2E] border-2 border-[#10B981]/30 rounded-xl p-6 shadow-lg flex flex-col items-center justify-center text-center relative">
-            <Shield className="w-8 h-8 text-[#10B981] mb-2" />
-            <h2 className="text-lg font-bold text-[#10B981] uppercase tracking-widest">Active & Secure</h2>
-            <div className="absolute top-4 right-4 w-3 h-3 bg-[#10B981] rounded-full animate-ping"></div>
-            <div className="absolute top-4 right-4 w-3 h-3 bg-[#10B981] rounded-full"></div>
-          </div>
-        </div>
-
-        {/* MIDDLE LAYER (3 columns) -> Identity | Mini Analytics | Blockchain */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Identity & Account Details (Col 1) */}
-          <div className="bg-[#1A1F2E] border border-white/5 rounded-xl p-6 shadow-lg flex flex-col justify-between">
-            <h3 className="text-lg font-bold text-[#E8EEF7] mb-6 border-b border-white/10 pb-3 flex items-center gap-2">
-              <User className="w-5 h-5 text-[#00F0FF]" /> Account Details
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs text-[#A0AEC0] uppercase tracking-wider mb-1">Account Number</p>
-                <p className="font-mono text-[#E8EEF7] font-semibold text-lg bg-[#0B0F14] border border-white/5 px-3 py-1.5 rounded">{accountOverview.accountNumber}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#A0AEC0] uppercase tracking-wider mb-1">IFSC Code</p>
-                <p className="font-mono text-[#10B981] font-semibold text-lg bg-[#0B0F14] border border-[#10B981]/20 px-3 py-1.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.1)]">{accountOverview.ifsc}</p>
-              </div>
-              <div>
-                <p className="text-xs text-[#A0AEC0] uppercase tracking-wider mb-1">Web3 Wallet (Linked)</p>
-                <div className="flex items-center gap-2 bg-[#0B0F14] px-3 py-1.5 rounded border border-[#00F0FF]/20 shadow-[0_0_10px_rgba(0,240,255,0.1)]">
-                  <Wallet className="w-4 h-4 text-[#00F0FF]" />
-                  <p className="font-mono text-[#E8EEF7] font-semibold">{accountOverview.walletAddress}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Mini Analytics (Col 2) */}
-          <div className="bg-[#1A1F2E] border border-white/5 rounded-xl p-6 shadow-lg flex flex-col">
-            <h3 className="text-lg font-bold text-[#E8EEF7] mb-2 flex items-center gap-2">
-              <PieChartIcon className="w-5 h-5 text-[#F59E0B]" /> Mini Analytics
-            </h3>
-            <p className="text-xs text-[#A0AEC0] mb-4 border-b border-white/10 pb-3">Spending this week (Income vs Expense)</p>
-            <div className="flex-1 w-full h-[200px] min-h-[200px]">
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={analyticsData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {analyticsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#0B0F14', border: '1px solid #ffffff10', borderRadius: '8px' }}
-                    itemStyle={{ color: '#E8EEF7' }}
-                    formatter={(value) => `₹ ${value}`}
-                  />
-                  <Legend verticalAlign="bottom" height={36}/>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Blockchain & Alerts Stack (Col 3) */}
-          <div className="flex flex-col gap-6">
-            
-            {/* Blockchain Transaction Info */}
-            <div className="bg-gradient-to-b from-[#0B0F14] to-[#1A1F2E] border border-[#10B981]/30 rounded-xl p-5 shadow-[0_0_15px_rgba(16,185,129,0.05)] text-sm">
-              <h3 className="text-[#10B981] font-bold mb-4 flex items-center gap-2 uppercase tracking-wide">
-                <LinkIcon className="w-4 h-4" /> Blockchain Details
-              </h3>
-              <div className="space-y-3 font-mono">
-                <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                  <span className="text-[#718096]">Tx Hash</span>
-                  <span className="text-[#00F0FF] cursor-help border-b border-dashed border-[#00F0FF]" title="0x8a7f92bA3B2c4F5E6D7E8F9A0B1C2D3E4F5A6B7C">0x8a7f...92b</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                  <span className="text-[#718096]">Block</span>
-                  <span className="text-[#E8EEF7]">#45231</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-white/5">
-                  <span className="text-[#718096]">Timestamp</span>
-                  <span className="text-[#E8EEF7]">14 Apr, 10:42AM</span>
-                </div>
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-[#718096]">Status</span>
-                  <span className="bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 px-2 py-0.5 rounded font-bold">Verified ✅</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Security Alerts */}
-            <div className="flex-1 bg-[#1A1F2E] border border-white/5 rounded-xl p-5 shadow-lg">
-              <h3 className="text-[#FF006E] font-bold mb-4 flex items-center gap-2 uppercase tracking-wide text-sm">
-                <ShieldAlert className="w-4 h-4" /> Alerts
-              </h3>
-              <div className="space-y-3">
-                <div className="flex gap-2 items-start opacity-80">
-                  <Fingerprint className="w-4 h-4 text-[#00F0FF] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#E8EEF7]">"New login detected"</p>
-                </div>
-                <div className="flex gap-2 items-start opacity-80">
-                  <LinkIcon className="w-4 h-4 text-[#10B981] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#E8EEF7]">"Transaction verified on blockchain"</p>
-                </div>
-                <div className="flex gap-2 items-start opacity-100 bg-[#FF006E]/10 p-2 rounded border border-[#FF006E]/20">
-                  <ShieldAlert className="w-4 h-4 text-[#FF006E] shrink-0 mt-0.5" />
-                  <p className="text-xs text-[#FF006E] font-semibold">"Suspicious activity alert deflected by logic gates."</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* BOTTOM LAYER: Full Filterable Transaction Table */}
-        <div className="bg-[#1A1F2E] border border-white/5 rounded-xl p-6 shadow-lg">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-white/5 pb-4">
-            <h2 className="text-xl font-bold text-[#E8EEF7]">Recent Transactions</h2>
-            
-            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#718096]" />
-                <input 
-                  type="text" 
-                  placeholder="Search ref or amount..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-[#0B0F14] border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-[#E8EEF7] focus:outline-none focus:border-[#00F0FF] transition"
-                />
-              </div>
-              
-              <div className="bg-[#0B0F14] border border-white/10 rounded-lg p-1 flex">
-                {['All', 'Credit', 'Debit'].map(type => (
-                  <button 
-                    key={type}
-                    onClick={() => setTypeFilter(type)}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition ${typeFilter === type ? 'bg-[#00F0FF]/20 text-[#00F0FF]' : 'text-[#A0AEC0] hover:text-[#E8EEF7]'}`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="text-[#A0AEC0] text-sm tracking-wider border-b border-white/5">
-                  <th className="px-4 py-3 font-semibold uppercase">Date</th>
-                  <th className="px-4 py-3 font-semibold uppercase">Type</th>
-                  <th className="px-4 py-3 font-semibold uppercase">Amount</th>
-                  <th className="px-4 py-3 font-semibold uppercase">Status</th>
-                  <th className="px-4 py-3 font-semibold uppercase text-right">Reference</th>
-                </tr>
-              </thead>
-              <tbody className="text-[#E8EEF7]">
-                {filteredTransactions.map((tx) => (
-                  <tr key={tx.id} className="border-b border-white/5 hover:bg-[#0B0F14]/50 transition cursor-default">
-                    <td className="px-4 py-4 text-sm text-[#A0AEC0] whitespace-nowrap">{tx.date}</td>
-                    <td className="px-4 py-4">
-                      {tx.type === 'Credit' ? (
-                        <span className="text-[#10B981] font-bold text-sm bg-[#10B981]/10 px-2 py-0.5 rounded border border-[#10B981]/20">Credit</span>
-                      ) : (
-                        <span className="text-[#FF006E] font-bold text-sm bg-[#FF006E]/10 px-2 py-0.5 rounded border border-[#FF006E]/20">Debit</span>
-                      )}
-                    </td>
-                    <td className={`px-4 py-4 font-mono font-bold ${tx.type === 'Credit' ? 'text-[#10B981]' : 'text-[#E8EEF7]'}`}>
-                      {tx.type === 'Credit' ? '+' : '-'}₹ {tx.amount}
-                    </td>
-                    <td className="px-4 py-4">
-                      {getStatusBadge(tx.status)}
-                    </td>
-                    <td className="px-4 py-4 font-medium text-right text-sm text-[#A0AEC0]">{tx.ref}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            
-            {filteredTransactions.length === 0 && (
-              <div className="text-center py-10 text-[#718096]">
-                No transactions match your current filters.
-              </div>
+            {kycStatus !== 'PENDING' && (
+              <Link to="/kyc" className="shrink-0 px-4 py-2 bg-[#FF006E]/10 border border-[#FF006E]/30 text-[#FF006E] text-xs font-bold rounded-lg hover:bg-[#FF006E]/20 transition">
+                Verify Now <ArrowRight className="inline w-3 h-3 ml-1" />
+              </Link>
             )}
           </div>
-        </div>
+        )}
 
+        {createError && <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">{createError}</div>}
+
+        {/* No account yet */}
+        {!loading && accounts.length === 0 && (
+          <div className="text-center py-16 bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] rounded-2xl border border-white/5">
+            <CreditCard className="w-14 h-14 text-[#4A5568] mx-auto mb-5" />
+            <h2 className="text-xl font-bold text-[#E8EEF7] mb-2">No Bank Account Yet</h2>
+            <p className="text-[#A0AEC0] text-sm mb-6">Open your first account to get started with Sovereign Banking.</p>
+            <div className="flex gap-3 justify-center">
+              {['SAVINGS', 'CURRENT'].map(type => (
+                <button key={type} onClick={() => createAccount(type)} disabled={creating}
+                  className="bg-gradient-to-r from-[#00F0FF] to-[#00B8CC] text-[#0B0F14] font-bold px-6 py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50">
+                  {creating ? '...' : `Open ${type} Account`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Account Cards */}
+        {accounts.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {accounts.map((acc) => (
+              <div key={acc.id}
+                className="relative overflow-hidden bg-gradient-to-br from-[#00B8CC] to-[#005F70] rounded-2xl p-6 text-white shadow-lg">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-10 -mt-10" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full -ml-8 -mb-8" />
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <p className="text-white/70 text-xs uppercase tracking-wider">Account Type</p>
+                      <p className="font-bold text-lg">{acc.accountType}</p>
+                    </div>
+                    <CreditCard className="w-8 h-8 text-white/80" />
+                  </div>
+                  <p className="text-white/60 text-xs mb-1">Available Balance</p>
+                  <p className="text-3xl font-black mb-5">{fmt(acc.balance)}</p>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-white/60 text-xs mb-0.5">Account Number</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-bold text-sm tracking-wider">{acc.accountNumber}</p>
+                        <button onClick={() => copyText(acc.accountNumber, acc.id)} className="text-white/60 hover:text-white">
+                          {copied === acc.id ? <CheckCircle2 className="w-3.5 h-3.5 text-green-300" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${acc.status === 'ACTIVE' ? 'bg-green-400/20 text-green-200' : 'bg-red-400/20 text-red-200'}`}>
+                      {acc.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Add Account Card */}
+            <button onClick={() => createAccount('SAVINGS')} disabled={creating}
+              className="border-2 border-dashed border-[#00F0FF]/20 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:border-[#00F0FF]/40 hover:bg-[#00F0FF]/5 transition group min-h-[180px]">
+              <Plus className="w-10 h-10 text-[#00F0FF]/40 group-hover:text-[#00F0FF] transition" />
+              <span className="text-[#A0AEC0] text-sm font-medium group-hover:text-[#00F0FF] transition">
+                {creating ? 'Creating...' : 'Open New Account'}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {/* Bottom Grid */}
+        {accounts.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Quick Actions */}
+            <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-white/5 rounded-2xl p-5">
+              <h2 className="font-bold text-[#E8EEF7] mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: Send,     label: 'Transfer',  path: '/transfer',     color: '#00F0FF' },
+                  { icon: Download, label: 'Deposit',   path: '/deposit',      color: '#10B981' },
+                  { icon: Minus,    label: 'Withdraw',  path: '/withdraw',     color: '#FF006E' },
+                  { icon: Activity, label: 'History',   path: '/transactions', color: '#F59E0B' },
+                ].map(({ icon: Icon, label, path, color }) => (
+                  <Link key={path} to={path}
+                    className="flex flex-col items-center bg-[#0B0F14] border border-white/5 p-3 rounded-xl hover:border-opacity-50 transition group"
+                    onMouseEnter={e => e.currentTarget.style.borderColor = color + '50'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)'}>
+                    <Icon className="w-6 h-6 mb-1.5 transition" style={{ color }} />
+                    <span className="text-xs font-medium text-[#A0AEC0] group-hover:text-[#E8EEF7]">{label}</span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Account Info */}
+              {primaryAccount && (
+                <div className="mt-4 space-y-2 pt-4 border-t border-white/5">
+                  {[
+                    { label: 'IBAN', value: primaryAccount.iban || 'N/A' },
+                    { label: 'Overdraft', value: fmt(primaryAccount.overdraftLimit) },
+                    { label: 'Currency', value: primaryAccount.currency || 'INR' },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between text-xs">
+                      <span className="text-[#718096]">{label}</span>
+                      <span className="text-[#E8EEF7] font-medium font-mono">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Spending Pie Chart */}
+            <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-white/5 rounded-2xl p-5">
+              <h2 className="font-bold text-[#E8EEF7] mb-4">Cash Flow</h2>
+              {credits === 0 && debits === 0 ? (
+                <div className="text-center py-10 text-[#A0AEC0] text-sm">No transactions yet</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} innerRadius={40} dataKey="value" paddingAngle={4}>
+                      {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => fmt(v)} contentStyle={{ background: '#0B0F14', border: '1px solid #00F0FF30', borderRadius: '8px', color: '#E8EEF7' }} />
+                    <Legend formatter={(v) => <span className="text-xs text-[#A0AEC0]">{v}</span>} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className="bg-[#10B981]/5 border border-[#10B981]/20 rounded-lg p-2.5 text-center">
+                  <p className="text-[#718096] text-xs mb-0.5">Total In</p>
+                  <p className="text-[#10B981] font-bold text-sm">{fmt(credits)}</p>
+                </div>
+                <div className="bg-[#FF006E]/5 border border-[#FF006E]/20 rounded-lg p-2.5 text-center">
+                  <p className="text-[#718096] text-xs mb-0.5">Total Out</p>
+                  <p className="text-[#FF006E] font-bold text-sm">{fmt(debits)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Transactions */}
+            <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-white/5 rounded-2xl p-5">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="font-bold text-[#E8EEF7]">Recent Activity</h2>
+                <Link to="/transactions" className="text-[#00F0FF] text-xs hover:underline">View all →</Link>
+              </div>
+              <div className="space-y-2">
+                {recentTx.length === 0 && !loading && (
+                  <div className="text-center py-8 text-[#718096] text-sm">No transactions yet</div>
+                )}
+                {recentTx.map((tx, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${tx.direction === 'IN' ? 'bg-[#10B981]/10' : 'bg-[#FF006E]/10'}`}>
+                      {tx.direction === 'IN'
+                        ? <ArrowDownRight className="w-4 h-4 text-[#10B981]" />
+                        : <ArrowUpRight className="w-4 h-4 text-[#FF006E]" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#E8EEF7] text-xs font-medium truncate">{tx.reference || tx.type}</p>
+                      <p className="text-[#718096] text-[10px]">{new Date(tx.date).toLocaleDateString()}</p>
+                    </div>
+                    <p className={`font-bold font-mono text-sm shrink-0 ${tx.direction === 'IN' ? 'text-[#10B981]' : 'text-[#E8EEF7]'}`}>
+                      {tx.direction === 'IN' ? '+' : '−'}{fmt(tx.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

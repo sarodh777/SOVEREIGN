@@ -25,6 +25,9 @@ public class BankingService {
     @Autowired
     private EncryptionService encryptionService;
 
+    @Autowired
+    private BlockchainService blockchainService;
+
     /**
      * Transfer money between accounts
      */
@@ -85,6 +88,19 @@ public class BankingService {
             bankAccountRepository.save(fromAccount);
             bankAccountRepository.save(toAccount);
 
+            try {
+                String blockchainPayload = blockchainService.recordTransaction(transaction);
+                // Truncate hash to 128 chars max
+                String hash = blockchainPayload != null && blockchainPayload.length() > 128
+                        ? blockchainPayload.substring(0, 128) : blockchainPayload;
+                transaction.setBlockchainHash(hash);
+                transactionLogRepository.save(transaction);
+            } catch (Exception blockchainException) {
+                String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
+                transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
+                transactionLogRepository.save(transaction);
+            }
+
             // Log audit
             auditService.logAction(fromAccount.getUser(), "TRANSFER", "TRANSACTION", transaction.getId().toString(), "SUCCESS");
 
@@ -143,6 +159,18 @@ public class BankingService {
             // Save
             transactionLogRepository.save(transaction);
             bankAccountRepository.save(account);
+
+            try {
+                String blockchainPayload = blockchainService.recordTransaction(transaction);
+                String hash = blockchainPayload != null && blockchainPayload.length() > 128
+                        ? blockchainPayload.substring(0, 128) : blockchainPayload;
+                transaction.setBlockchainHash(hash);
+                transactionLogRepository.save(transaction);
+            } catch (Exception blockchainException) {
+                String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
+                transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
+                transactionLogRepository.save(transaction);
+            }
 
             // Audit
             auditService.logAction(account.getUser(), "DEPOSIT", "TRANSACTION", transaction.getId().toString(), "SUCCESS");
@@ -212,6 +240,18 @@ public class BankingService {
             transactionLogRepository.save(transaction);
             bankAccountRepository.save(account);
 
+            try {
+                String blockchainPayload = blockchainService.recordTransaction(transaction);
+                String hash = blockchainPayload != null && blockchainPayload.length() > 128
+                        ? blockchainPayload.substring(0, 128) : blockchainPayload;
+                transaction.setBlockchainHash(hash);
+                transactionLogRepository.save(transaction);
+            } catch (Exception blockchainException) {
+                String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
+                transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
+                transactionLogRepository.save(transaction);
+            }
+
             // Audit
             auditService.logAction(account.getUser(), "WITHDRAWAL", "TRANSACTION", transaction.getId().toString(), "SUCCESS");
 
@@ -279,6 +319,7 @@ public class BankingService {
                 tx.put("date", log.getTransactionDate());
                 tx.put("reference", log.getReference());
                 tx.put("description", log.getDescription());
+                tx.put("blockchainHash", log.getBlockchainHash());
 
                 if (log.getFromAccount() != null && log.getFromAccount().getId().equals(accountId)) {
                     tx.put("direction", "OUT");

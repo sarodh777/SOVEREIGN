@@ -10,7 +10,7 @@ const api = axios.create({
   }
 });
 
-// Add token to requests if it exists
+// Attach JWT token to every request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -18,5 +18,20 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Auto-logout on 401 (expired/invalid token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const isAuthRoute = error.config?.url?.includes('/api/auth/');
+      if (!isAuthRoute) {
+        ['token', 'userEmail', 'userName', 'userRole', 'userId', 'accountId'].forEach(k => localStorage.removeItem(k));
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

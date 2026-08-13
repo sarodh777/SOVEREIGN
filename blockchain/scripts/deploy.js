@@ -1,12 +1,12 @@
 const hre = require("hardhat");
 
 async function main() {
-  const Governance = await hre.ethers.getContractFactory("SovereignGovernance");
-  const contract = await Governance.deploy();
-  
+  const BankLedger = await hre.ethers.getContractFactory("BankLedger");
+  const contract = await BankLedger.deploy();
+
   await contract.waitForDeployment();
-  
-  console.log("SovereignGovernance deployed to:", contract.target);
+
+  console.log("BankLedger deployed to:", contract.target);
 }
 
 main()

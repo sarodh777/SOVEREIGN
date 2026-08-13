@@ -31,16 +31,32 @@ export default function OTPVerification() {
     setError('');
 
     try {
-      const response = await api.post('/api/auth/verify-otp', { email, otp });
-      localStorage.setItem('userEmail', email);
-      localStorage.setItem('token', response.data.token || '');
-      navigate('/dashboard');
+      const purpose = location.state?.purpose || 'LOGIN';
+      const response = await api.post('/api/auth/verify-otp', { email, otp, purpose });
+      
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userName', response.data.name || '');
+        localStorage.setItem('userRole', response.data.role || 'ROLE_USER');
+        localStorage.setItem('userId', response.data.userId || '');
+        
+        if (response.data.role === 'ROLE_ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        // REGISTER purpose - just verification, no token
+        navigate('/login', { state: { registered: true } });
+      }
     } catch (error) {
-      setError('Invalid or expired OTP. Please try again.');
+      setError(error.response?.data?.message || 'Invalid or expired OTP. Please try again.');
       console.error(error);
     }
     setLoading(false);
   };
+
 
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return;

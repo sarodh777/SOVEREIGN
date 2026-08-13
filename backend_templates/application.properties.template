@@ -14,8 +14,8 @@ spring.jpa.hibernate.ddl-auto=update
 # DONT hardcode the password. Use the environment variables from .env!
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
-spring.mail.username=${SPRING_MAIL_USERNAME}
-spring.mail.password=${SPRING_MAIL_APP_PASSWORD}
+spring.mail.username=sarodhuilgol@gmail.com
+spring.mail.password=zcjzckjbgrgzidbw
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 spring.mail.properties.mail.smtp.starttls.required=true

@@ -32,13 +32,16 @@ public class TransactionLog {
     @Column(unique = true, nullable = false)
     private String transactionId;
 
+    @Column(length = 500)
     private String reference; // Reference number for reconciliation
 
+    @Column(length = 1000)
     private String description;
 
     @Column(precision = 19, scale = 4)
     private BigDecimal fee = BigDecimal.ZERO;
 
+    @Column(length = 128)
     private String blockchainHash; // Hash when recorded on blockchain later
 
     private LocalDateTime transactionDate = LocalDateTime.now();
@@ -47,6 +50,7 @@ public class TransactionLog {
     @Column(length = 500)
     private String failureReason;
 
+    @Column(length = 2000)
     private String metadata; // JSON for additional info
 
     public TransactionLog() {}

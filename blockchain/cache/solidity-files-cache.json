@@ -1,0 +1,77 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\lenovo\\OneDrive\\Desktop\\frontend_p1\\blockchain\\contracts\\SovereignGovernance.sol": {
+      "lastModificationDate": 1784127440759,
+      "contentHash": "c760205c814e8859aad438b857f0b1ee",
+      "sourceName": "contracts/SovereignGovernance.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "SovereignGovernance"
+      ]
+    },
+    "C:\\Users\\lenovo\\OneDrive\\Desktop\\frontend_p1\\blockchain\\contracts\\BankLedger.sol": {
+      "lastModificationDate": 1784131537127,
+      "contentHash": "9c31023a4ed03fbff032f742801f97d6",
+      "sourceName": "contracts/BankLedger.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.24"
+      ],
+      "artifacts": [
+        "BankLedger"
+      ]
+    }
+  }
+}
