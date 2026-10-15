@@ -14,17 +14,22 @@ public class AuditService {
     private AuditLogRepository auditLogRepository;
 
     /**
-     * Log user action for compliance and security
+     * Log user or admin action for compliance and security
      */
     public void logAction(User user, String action, String entityType, String entityId, String status) {
+        logAction(user, action, entityType, entityId, status, null, null, null);
+    }
+
+    public void logAction(User user, String action, String entityType, String entityId, String status, String details, String failureReason, String ipAddress) {
         try {
             AuditLog log = new AuditLog(user, action, entityType, status);
             log.setEntityId(entityId);
-            log.setIpAddress(getClientIp());
+            log.setDetails(details);
+            log.setFailureReason(failureReason);
+            log.setIpAddress(ipAddress != null && !ipAddress.isEmpty() ? ipAddress : getClientIp());
             log.setUserAgent(System.getProperty("user.agent"));
             auditLogRepository.save(log);
         } catch (Exception e) {
-            // Log error but don't fail the main transaction
             System.err.println("Audit logging failed: " + e.getMessage());
         }
     }

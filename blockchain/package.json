@@ -1,7 +1,7 @@
-{
-  "name": "sovereign-governance",
+﻿{
+  "name": "VAULTCHAIN-governance",
   "version": "1.0.0",
-  "description": "Smart contracts for Sovereign Ledger governance",
+  "description": "Smart contracts for VAULTCHAIN governance",
   "main": "hardhat.config.js",
   "scripts": {
     "compile": "hardhat compile",
@@ -17,6 +17,6 @@
     "ethers": "^6.11.0"
   },
   "keywords": ["hardhat", "ethereum", "solidity", "governance"],
-  "author": "Sovereign Ledger",
+  "author": "VAULTCHAIN",
   "license": "MIT"
 }

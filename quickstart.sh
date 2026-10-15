@@ -1,8 +1,8 @@
-#!/bin/bash
-# Quick start script for Sovereign Ledger
+﻿#!/bin/bash
+# Quick start script for VAULTCHAIN
 
 echo "=========================================="
-echo "Sovereign Ledger - Quick Start"
+echo "VAULTCHAIN - Quick Start"
 echo "=========================================="
 echo ""
 

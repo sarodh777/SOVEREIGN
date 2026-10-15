@@ -1,4 +1,4 @@
-# Sovereign Ledger - Complete Setup Guide
+﻿# VAULTCHAIN - Complete Setup Guide
 
 This is a full-stack institutional blockchain governance system with:
 - **Frontend**: React/Vite with Tailwind CSS
@@ -30,7 +30,7 @@ mvnw.cmd clean install
 **Important:** Ensure MySQL is running and the database is created:
 
 ```sql
-CREATE DATABASE sovereign_ledger;
+CREATE DATABASE vaultchain;
 ```
 
 ### 2. Frontend Setup (React + Vite)
@@ -80,7 +80,7 @@ mvnw.cmd spring-boot:run
 
 You should see:
 ```
-Started SovereignLedgerApplication in X seconds
+Started VAULTCHAINLedgerApplication in X seconds
 ```
 
 ### Terminal 2: Frontend (Vite Dev Server)
@@ -131,7 +131,7 @@ The frontend connects to:
 frontier_p1/
 ├── backend/              (Spring Boot)
 │   ├── src/
-│   │   ├── main/java/com/sovereign/ledger/
+│   │   ├── main/java/com/VAULTCHAIN/ledger/
 │   │   │   ├── controller/     (Auth, Governance APIs)
 │   │   │   ├── service/        (OTP, Email, Governance logic)
 │   │   │   ├── model/          (User, Block, Transaction)
@@ -147,7 +147,7 @@ frontier_p1/
 │   └── index.css       (Tailwind + styling)
 ├── blockchain/          (Hardhat + Solidity)
 │   ├── contracts/
-│   │   └── SovereignGovernance.sol
+│   │   └── VAULTCHAINGovernance.sol
 │   ├── scripts/
 │   │   └── deploy.js
 │   └── hardhat.config.js

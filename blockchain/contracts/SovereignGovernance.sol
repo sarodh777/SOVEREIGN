@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract SovereignGovernance {
+contract VAULTCHAINGovernance {
     address public admin;
 
     struct Proposal {

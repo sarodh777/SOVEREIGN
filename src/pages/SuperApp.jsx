@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import Navbar from '../components/SuperApp/Navbar';
 import CategoryRibbon from '../components/SuperApp/CategoryRibbon';
 import ProductCard from '../components/SuperApp/ProductCard';
@@ -15,7 +15,7 @@ const SuperApp = () => {
   useEffect(() => {
     const fetchItems = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/items');
+        const response = await api.get('/api/items');
         setItems(response.data);
       } catch (error) {
         console.error('Error fetching items:', error);
@@ -48,7 +48,7 @@ const SuperApp = () => {
     : items.filter(item => item.category === activeCategory);
 
   return (
-    <div className="min-h-screen bg-[#0B0F14] text-white">
+    <div className="min-h-screen bg-[#050B2E] text-[#F8FAFC]">
       <Navbar 
         cartItemCount={cartItems.length} 
         onCartClick={() => setIsCartOpen(true)} 
@@ -62,7 +62,7 @@ const SuperApp = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00F0FF]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#713BFF]"></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface OtpVerificationRepository extends JpaRepository<OtpVerification, Long> {
     Optional<OtpVerification> findTopByEmailAndPurposeAndUsedFalseOrderByCreatedAtDesc(String email, String purpose);
 
+    Optional<OtpVerification> findTopByEmailAndUsedFalseOrderByCreatedAtDesc(String email);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM OtpVerification o WHERE o.email = :email AND o.purpose = :purpose")

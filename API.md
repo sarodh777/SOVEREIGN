@@ -1,332 +1,326 @@
-# Sovereign Ledger - API Documentation
+# VAULTCHAIN - Comprehensive REST API Documentation
 
 ## Base URL
 - **Development**: `http://localhost:8080`
-- **Production**: `{api-gateway-url}`
+- **Frontend Client Proxy**: `http://localhost:5173/api`
 
-## Authentication
-Most endpoints use either:
-1. **No Auth** (public endpoints: `/api/auth/**`)
-2. **JWT Token** (protected endpoints)
-3. **OAuth2** (Google login redirect)
-
-## Endpoints
-
-### Authentication Endpoints
-
-#### 1. Request OTP
-Request a one-time password sent via email.
-
-```http
-POST /api/auth/request-otp
-Content-Type: application/json
-
-{
-  "email": "operator@institution.com"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "message": "OTP sent successfully",
-  "email": "operator@institution.com"
-}
-```
-
-**Response (400 Bad Request):**
-```json
-{
-  "message": "Email is required"
-}
-```
-
-**Response (500 Error):**
-```json
-{
-  "message": "Failed to send OTP. Check email configuration."
-}
-```
+## Authentication & Headers
+VAULTCHAIN supports three authentication modes:
+1. **Public Endpoints**: `/api/auth/**`, no credentials required.
+2. **Bearer JWT Token**: Authenticated endpoints require an `Authorization` header:
+   ```http
+   Authorization: Bearer <JWT_TOKEN>
+   ```
+3. **OAuth2 SSO**: Google OAuth2 redirect flow via `http://localhost:8080/oauth2/authorization/google`.
 
 ---
 
-#### 2. Verify OTP
-Verify the OTP code received via email.
+## 1. Authentication Endpoints (`/api/auth`)
 
-```http
-POST /api/auth/verify-otp
-Content-Type: application/json
+### 1.1 Register New User
+Create an institutional or customer account.
+* **Method**: `POST /api/auth/register`
+* **Content-Type**: `application/json`
+* **Request**:
+  ```json
+  {
+    "name": "Jane Doe",
+    "email": "jane@vaultchain.bank",
+    "password": "Password123!",
+    "role": "ROLE_USER"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "User registered successfully",
+    "userId": 1
+  }
+  ```
 
-{
-  "email": "operator@institution.com",
-  "otp": "123456"
-}
-```
+### 1.2 User Login (Password)
+* **Method**: `POST /api/auth/login`
+* **Content-Type**: `application/json`
+* **Request**:
+  ```json
+  {
+    "email": "jane@vaultchain.bank",
+    "password": "Password123!"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "token": "eyJhbGciOi...",
+    "user": {
+      "id": 1,
+      "email": "jane@vaultchain.bank",
+      "name": "Jane Doe",
+      "role": "ROLE_USER"
+    }
+  }
+  ```
 
-**Response (200 OK):**
-```json
-{
-  "message": "Authentication successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+### 1.3 Request Email OTP (Two-Factor Authentication)
+* **Method**: `POST /api/auth/request-otp`
+* **Request**:
+  ```json
+  { "email": "operator@institution.com" }
+  ```
+* **Response (200 OK)**:
+  ```json
+  { "success": true, "message": "OTP sent successfully" }
+  ```
 
-**Response (400 Bad Request):**
-```json
-{
-  "message": "Email and OTP are required"
-}
-```
+### 1.4 Verify OTP
+* **Method**: `POST /api/auth/verify-otp`
+* **Request**:
+  ```json
+  {
+    "email": "operator@institution.com",
+    "otp": "482910"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "token": "eyJhbGciOi...",
+    "user": { "email": "operator@institution.com", "role": "ROLE_USER" }
+  }
+  ```
 
-**Response (401 Unauthorized):**
-```json
-{
-  "message": "Invalid or expired OTP"
-}
-```
-
----
-
-#### 3. Test Email (Debug)
-Test if email configuration is working correctly.
-
-```http
-GET /api/auth/test-email
-```
-
-**Response (200 OK):**
-```json
-{
-  "sent": true,
-  "recipient": "sarodhuilgol@gmail.com",
-  "status": "Email sent successfully - check SMTP config"
-}
-```
-
----
-
-### Governance Endpoints
-
-#### 1. Submit Vote
-Cast a governance vote on a proposal.
-
-```http
-POST /api/governance/vote
-Content-Type: application/json
-
-{
-  "proposalId": "SLP-0824",
-  "voteDirection": "SUPPORT",
-  "hsmKey": "securekey"
-}
-```
-
-**Request Parameters:**
-- `proposalId` (string): The unique identifier of the proposal (e.g., "SLP-0824")
-- `voteDirection` (string): Either "SUPPORT" or "AGAINST"
-- `hsmKey` (string): Hardware Security Module access key (currently: "securekey")
-
-**Response (200 OK):**
-```json
-{
-  "success": true,
-  "message": "Vote recorded successfully",
-  "transactionHash": "0x1234567890abcdef1234567890abcdef12345678",
-  "proposalId": "SLP-0824",
-  "voteDirection": "SUPPORT"
-}
-```
-
-**Response (400 Bad Request):**
-```json
-{
-  "success": false,
-  "message": "Proposal ID and Vote Direction are required"
-}
-```
-
-**Response (403 Forbidden):**
-```json
-{
-  "success": false,
-  "message": "HSM Access Key Invalid"
-}
-```
+### 1.5 Get User Profile
+* **Method**: `GET /api/auth/profile`
+* **Headers**: `Authorization: Bearer <token>`
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "user": {
+      "id": 1,
+      "name": "Jane Doe",
+      "email": "jane@vaultchain.bank",
+      "role": "ROLE_USER",
+      "createdAt": "2026-03-15T10:00:00Z"
+    }
+  }
+  ```
 
 ---
 
-## Usage Examples
+## 2. Core Banking Endpoints (`/api/banking`)
 
-### cURL Examples
+### 2.1 Get User Accounts
+Retrieve all checking, savings, and institutional accounts associated with the authenticated user.
+* **Method**: `GET /api/banking/accounts`
+* **Headers**: `Authorization: Bearer <token>`
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "accounts": [
+      {
+        "id": 101,
+        "accountNumber": "VC-1001-9281",
+        "accountType": "CHECKING",
+        "balance": 15420.50,
+        "currency": "INR",
+        "status": "ACTIVE",
+        "overdraftLimit": 5000.00
+      }
+    ]
+  }
+  ```
 
-#### Request OTP
-```bash
-curl -X POST http://localhost:8080/api/auth/request-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email":"operator@institution.com"}'
-```
+### 2.2 Transfer Funds
+Execute a money transfer with fee calculation and risk evaluation.
+* **Method**: `POST /api/banking/transfer`
+* **Headers**: `Authorization: Bearer <token>`
+* **Request**:
+  ```json
+  {
+    "fromAccountId": 101,
+    "recipientEmail": "bob@vaultchain.bank",
+    "amount": 2500.00,
+    "reference": "Consulting Invoice #410",
+    "pin": "1234",
+    "signature": "3045022100..."
+  }
+  ```
+* **Fee Structure**:
+  - Transfer fee: 0.5% of principal
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Transfer processed successfully",
+    "transactionId": "TXN-20261010-8912",
+    "fee": 12.50,
+    "newBalance": 12908.00,
+    "status": "COMPLETED"
+  }
+  ```
 
-#### Verify OTP
-```bash
-curl -X POST http://localhost:8080/api/auth/verify-otp \
-  -H "Content-Type: application/json" \
-  -d '{"email":"operator@institution.com","otp":"123456"}'
-```
+### 2.3 Deposit Funds
+* **Method**: `POST /api/banking/deposit`
+* **Request**:
+  ```json
+  {
+    "accountId": 101,
+    "amount": 5000.00,
+    "reference": "Initial Funding"
+  }
+  ```
+* **Fee**: No fee ($0.00 / ₹0.00)
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Deposit credited successfully",
+    "transactionId": "DEP-20261010-1102",
+    "newBalance": 20420.50
+  }
+  ```
 
-#### Submit Vote
-```bash
-curl -X POST http://localhost:8080/api/governance/vote \
-  -H "Content-Type: application/json" \
-  -d '{
-    "proposalId":"SLP-0824",
-    "voteDirection":"SUPPORT",
-    "hsmKey":"securekey"
-  }'
-```
-
-#### Test Email
-```bash
-curl -X GET http://localhost:8080/api/auth/test-email
-```
-
-### JavaScript/Axios Examples
-
-```javascript
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:8080'
-});
-
-// Request OTP
-async function requestOTP(email) {
-  const response = await api.post('/api/auth/request-otp', { email });
-  return response.data;
-}
-
-// Verify OTP
-async function verifyOTP(email, otp) {
-  const response = await api.post('/api/auth/verify-otp', { email, otp });
-  return response.data;
-}
-
-// Submit Vote
-async function submitVote(proposalId, voteDirection, hsmKey) {
-  const response = await api.post('/api/governance/vote', {
-    proposalId,
-    voteDirection,
-    hsmKey
-  });
-  return response.data;
-}
-```
-
----
-
-## OAuth2 Google Login
-
-### Authorization Endpoint
-```
-GET http://localhost:8080/oauth2/authorization/google
-```
-
-### Frontend Redirect
-```javascript
-const handleGoogleAuth = () => {
-  window.location.href = "http://localhost:8080/oauth2/authorization/google";
-};
-```
-
-After successful authentication, user is redirected to:
-```
-http://localhost:5173/dashboard
-```
-
----
-
-## Error Handling
-
-### Common HTTP Status Codes
-
-| Code | Meaning | Example |
-|------|---------|---------|
-| 200 | Success | Authentication successful |
-| 400 | Bad Request | Missing email parameter |
-| 401 | Unauthorized | Invalid OTP |
-| 403 | Forbidden | Invalid HSM key |
-| 500 | Server Error | SMTP connection failed |
-
-### Error Response Format
-```json
-{
-  "message": "Error description",
-  "timestamp": "2026-04-12T10:30:00Z",
-  "status": 400
-}
-```
+### 2.4 Get Transaction History
+* **Method**: `GET /api/banking/transactions/{accountId}`
+* **Headers**: `Authorization: Bearer <token>`
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "transactions": [
+      {
+        "id": 901,
+        "transactionId": "TXN-20261010-8912",
+        "type": "TRANSFER",
+        "amount": 2500.00,
+        "fee": 12.50,
+        "direction": "OUT",
+        "status": "COMPLETED",
+        "date": "2026-10-10T14:32:00Z",
+        "reference": "Consulting Invoice #410",
+        "blockchainHash": "0x4b78e2..."
+      }
+    ]
+  }
+  ```
 
 ---
 
-## CORS Configuration
+## 3. Cryptographic Digital Signatures (`/api/security/signature`)
 
-Frontend can only access from:
-- `http://localhost:5173` (development)
+### 3.1 Fetch User Signatures
+* **Method**: `GET /api/security/signature/my-signatures`
+* **Headers**: `Authorization: Bearer <token>`
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "signatures": [
+      {
+        "transactionId": "TXN-20261010-8912",
+        "publicKeyHex": "04a29c...",
+        "canonicalPayloadHash": "e3b0c44298fc...",
+        "signatureDerHex": "3045022100...",
+        "signatureVerified": true,
+        "timestamp": 1791642720
+      }
+    ]
+  }
+  ```
 
-In production, update: `backend/src/main/java/com/sovereign/ledger/config/SecurityConfig.java`
-
----
-
-## Rate Limiting
-
-Currently no rate limiting implemented. For production:
-- Implement Spring Security rate limiting
-- Use `@RateLimitWith` on sensitive endpoints
-- Limit OTP requests to 5 per hour per email
-
----
-
-## Security Notes
-
-⚠️ **Production Checklist:**
-- [ ] Remove hardcoded credentials
-- [ ] Use environment variables for secrets
-- [ ] Enable HTTPS (TLS/SSL)
-- [ ] Implement rate limiting
-- [ ] Add request signing for blockchain transactions
-- [ ] Implement audit logging
-- [ ] Use strong password hashing for user passwords
-- [ ] Enable token expiration
-
----
-
-## Postman Collection
-
-Import the included `Sovereign-Ledger.postman_collection.json` file into Postman for easy testing.
-
----
-
-## Support & Debugging
-
-**Enable debug logging:**
-Edit `backend/src/main/resources/application.properties`:
-```properties
-logging.level.root=INFO
-logging.level.com.sovereign.ledger=DEBUG
-```
-
-**Check backend logs:**
-```bash
-cd backend
-./mvnw spring-boot:run | grep -i "error\|exception"
-```
-
-**Test connectivity:**
-```bash
-curl -v http://localhost:8080/api/auth/test-email
-```
+### 3.2 Verify / Tamper Test Simulation
+* **Method**: `POST /api/security/signature/test-tamper`
+* **Request**:
+  ```json
+  {
+    "transactionId": "TXN-DEMO-001",
+    "fromAccount": "1001-XXXX-001",
+    "toAccount": "1002-XXXX-002",
+    "originalAmount": "1500.00",
+    "tamperedAmount": "95000.00"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "verified": false,
+    "status": "TAMPERED",
+    "reason": "Cryptographic signature does not match tampered payload hash"
+  }
+  ```
 
 ---
 
-**Last Updated**: 2026-04-12
-**API Version**: 1.0
-**Status**: Production Ready
+## 4. AI Fraud Detection & Compliance (`/api/admin/fraud` & `/api/kyc`)
+
+### 4.1 Submit KYC Document
+* **Method**: `POST /api/kyc/submit`
+* **Request**:
+  ```json
+  {
+    "fullName": "Jane Doe",
+    "documentType": "PASSPORT",
+    "documentNumber": "P12984920",
+    "country": "India"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "status": "PENDING_VERIFICATION",
+    "message": "KYC submission received for compliance review"
+  }
+  ```
+
+### 4.2 Admin Fraud Alerts
+* **Method**: `GET /api/admin/fraud/alerts`
+* **Query Params**: `riskLevel=HIGH|MEDIUM|LOW`, `status=NEW|REVIEWED|RESOLVED`
+* **Headers**: `Authorization: Bearer <token>` (Admin role required)
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "alerts": [
+      {
+        "id": 12,
+        "transactionId": "TXN-88192",
+        "riskLevel": "HIGH",
+        "riskScore": 88,
+        "flaggedReason": "Rapid succession high-value transfer",
+        "status": "UNDER_REVIEW"
+      }
+    ]
+  }
+  ```
+
+---
+
+## 5. Blockchain Governance (`/api/governance`)
+
+### 5.1 Submit Governance Vote
+* **Method**: `POST /api/governance/vote`
+* **Content-Type**: `application/json`
+* **Request**:
+  ```json
+  {
+    "proposalId": "SLP-0824",
+    "voteDirection": "SUPPORT",
+    "hsmKey": "securekey"
+  }
+  ```
+* **Response (200 OK)**:
+  ```json
+  {
+    "success": true,
+    "message": "Vote recorded on institutional blockchain ledger",
+    "transactionHash": "0x1234567890abcdef1234567890abcdef12345678",
+    "proposalId": "SLP-0824",
+    "voteDirection": "SUPPORT"
+  }
+  ```

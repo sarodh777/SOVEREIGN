@@ -1,10 +1,10 @@
-# Sovereign Ledger - Troubleshooting Guide
+# VAULTCHAIN - Troubleshooting Guide
 
 ## Common Issues & Solutions
 
 ### Backend Issues
 
-#### ❌ "Cannot resolve com.sovereign.ledger package"
+#### ❌ "Cannot resolve com.VAULTCHAIN.ledger package"
 
 **Cause**: Source files not found or build not completed
 
@@ -35,11 +35,11 @@ sudo systemctl start mysql
 
 # Create database
 mysql -u root -p
-mysql> CREATE DATABASE sovereign_ledger;
+mysql> CREATE DATABASE vaultchain;
 mysql> exit;
 
 # Verify connection in application.properties
-spring.datasource.url=jdbc:mysql://localhost:3306/sovereign_ledger
+spring.datasource.url=jdbc:mysql://localhost:3306/vaultchain
 ```
 
 ---
@@ -284,54 +284,32 @@ npm run compile      # Recompile
 
 ---
 
-### Docker Issues
+### Process & Port Conflicts
 
-#### ❌ "docker-compose: command not found"
+#### ❌ "Port 8080 already in use" (Backend)
 
-**Cause**: Docker Compose not installed
+**Cause**: An existing Java process or system service is occupying port 8080.
 
 **Solution**:
-```bash
-# Install Docker Desktop (includes compose)
-# Or install separately
-docker-compose --version
+```powershell
+# Windows PowerShell
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess | Stop-Process -Force
 
-# If using Docker V2 syntax
-docker compose up -d
+# Linux / macOS
+lsof -ti:8080 | xargs kill -9
 ```
 
 ---
 
-#### ❌ "Cannot connect to MySQL from container"
+#### ❌ "Port 5173 already in use" (Frontend)
 
-**Cause**: Network or host name issue
-
-**Solution**:
-```yaml
-# In docker-compose.yml
-services:
-  backend:
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/sovereign_ledger"
-      # Note: use service name 'mysql', not localhost
-```
-
----
-
-#### ❌ "Port already allocated"
+**Cause**: Previous Vite dev server still running in the background.
 
 **Solution**:
-```bash
-# Check what's using ports
-docker ps
-docker port CONTAINER_NAME
-
-# Stop conflicting containers
-docker stop CONTAINER_NAME
-
-# Or change ports in docker-compose.yml
-ports:
-  - "9080:8080"  # Change from 8080
+Vite automatically falls back to port `5174`. To free port 5173:
+```powershell
+# Windows PowerShell
+Get-Process -Id (Get-NetTCPConnection -LocalPort 5173).OwningProcess | Stop-Process -Force
 ```
 
 ---
@@ -345,8 +323,7 @@ ports:
 # Verify file paths
 ls -la backend/src/main/java/com/sovereign/ledger/
 
-# Use absolute paths for imports
-# Avoid relative paths like ../../../
+# Use absolute paths or correct relative paths from src root
 ```
 
 ---
@@ -355,29 +332,24 @@ ls -la backend/src/main/java/com/sovereign/ledger/
 
 **Solution**:
 ```bash
-# Increase heap size for Java
-export MAVEN_OPTS=-Xmx1024m
+# Increase heap size for Maven / Spring Boot
+export MAVEN_OPTS="-Xmx2048m -Xms512m"
 ./mvnw spring-boot:run
-
-# For Docker containers
-docker-compose down
-# Edit docker-compose.yml
-environment:
-  JAVA_OPTS: "-Xmx1G -Xms512m"
-docker-compose up -d
 ```
 
 ---
 
 #### ❌ "Long startup time" (Backend takes 30+ seconds)
 
-**Cause**: Normal for Spring Boot on first run
+**Cause**: Normal on initial run while Hibernate validates or updates database tables.
 
 **Solution**:
-- Wait for full startup message
-- Check logs: `docker-compose logs backend | grep "Started"`
-- Improve startup with:
+- Wait for the console confirmation message: `Started SovereignLedgerApplication in X seconds`
+- Ensure MySQL connection pool parameters are optimized:
 ```properties
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+```
 # application.properties
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.format_sql=false
@@ -392,7 +364,7 @@ logging.level.root=WARN
 
 **Backend** (`application.properties`):
 ```properties
-logging.level.com.sovereign.ledger=DEBUG
+logging.level.com.VAULTCHAIN.ledger=DEBUG
 logging.level.org.springframework.security=DEBUG
 logging.level.org.springframework.mail=DEBUG
 ```
@@ -413,15 +385,16 @@ console.error('Error:', error);
 4. Check request/response details
 
 **Backend logs**:
+View active console output running in the Spring Boot terminal or redirect to file:
 ```bash
-docker-compose logs -f backend | grep "POST\|GET"
+./mvnw spring-boot:run | grep "POST\|GET"
 ```
 
 ### 3. Database Inspection
 
 ```bash
 # Connect to MySQL
-mysql -u root -p sovereign_ledger
+mysql -u root -p vaultchain
 
 # Check tables
 SHOW TABLES;
@@ -449,11 +422,7 @@ mysql -h localhost -u root -p < /dev/null && echo "MySQL OK"
 
 ## Getting Help
 
-1. **Check logs**: Always check application logs first
-   ```bash
-   docker-compose logs backend
-   docker-compose logs frontend
-   ```
+1. **Check logs**: Check the respective terminal stdout/stderr for backend (Java stacktraces) and frontend (browser console and Vite output).
 
 2. **Review error messages**: Errors usually contain the solution
 

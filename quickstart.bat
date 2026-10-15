@@ -1,9 +1,9 @@
-@echo off
-REM Quick start script for Sovereign Ledger (Windows)
+﻿@echo off
+REM Quick start script for VAULTCHAIN (Windows)
 
 echo.
 echo ==========================================
-echo Sovereign Ledger - Quick Start (Windows)
+echo VAULTCHAIN - Quick Start (Windows)
 echo ==========================================
 echo.
 

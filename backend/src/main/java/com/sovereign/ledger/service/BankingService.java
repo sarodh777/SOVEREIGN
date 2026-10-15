@@ -28,6 +28,28 @@ public class BankingService {
     @Autowired
     private BlockchainService blockchainService;
 
+    @Autowired
+    private BlockRepository blockRepository;
+
+    public synchronized void recordBlockForTransaction(String hash, LocalDateTime txTime) {
+        if (hash == null || hash.isEmpty()) return;
+        try {
+            if (blockRepository.count() == 0) {
+                Block genesis = new Block("0x0000000000000000000000000000000000000000000000000000000000000000",
+                                          "0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+                genesis.setTimestamp(txTime != null ? txTime.minusMinutes(1) : LocalDateTime.now().minusMinutes(1));
+                blockRepository.save(genesis);
+            }
+
+            List<Block> allBlocks = blockRepository.findAll();
+            Block previousBlock = allBlocks.get(allBlocks.size() - 1);
+
+            Block newBlock = new Block(previousBlock.getHash(), hash);
+            newBlock.setTimestamp(txTime != null ? txTime : LocalDateTime.now());
+            blockRepository.save(newBlock);
+        } catch (Exception ignored) {}
+    }
+
     /**
      * Transfer money between accounts
      */
@@ -57,10 +79,16 @@ public class BankingService {
                 return response;
             }
 
-            // Check account status
+            // Check account status and user status
             if (!fromAccount.getStatus().equals("ACTIVE") || !toAccount.getStatus().equals("ACTIVE")) {
                 response.put("success", false);
-                response.put("message", "One or both accounts are not active");
+                response.put("message", "One or both accounts are not active or frozen");
+                return response;
+            }
+            if ((fromAccount.getUser() != null && !fromAccount.getUser().isActive()) ||
+                (toAccount.getUser() != null && !toAccount.getUser().isActive())) {
+                response.put("success", false);
+                response.put("message", "Account holder is blocked or suspended by administrator");
                 return response;
             }
 
@@ -95,6 +123,7 @@ public class BankingService {
                         ? blockchainPayload.substring(0, 128) : blockchainPayload;
                 transaction.setBlockchainHash(hash);
                 transactionLogRepository.save(transaction);
+                recordBlockForTransaction(hash, transaction.getCompletedDate());
             } catch (Exception blockchainException) {
                 String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
                 transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
@@ -136,9 +165,9 @@ public class BankingService {
                 return response;
             }
 
-            if (!account.getStatus().equals("ACTIVE")) {
+            if (!account.getStatus().equals("ACTIVE") || (account.getUser() != null && !account.getUser().isActive())) {
                 response.put("success", false);
-                response.put("message", "Account is not active");
+                response.put("message", "Account is not active or user is blocked by administrator");
                 return response;
             }
 
@@ -166,6 +195,7 @@ public class BankingService {
                         ? blockchainPayload.substring(0, 128) : blockchainPayload;
                 transaction.setBlockchainHash(hash);
                 transactionLogRepository.save(transaction);
+                recordBlockForTransaction(hash, transaction.getCompletedDate());
             } catch (Exception blockchainException) {
                 String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
                 transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
@@ -183,87 +213,6 @@ public class BankingService {
         } catch (Exception e) {
             response.put("success", false);
             response.put("message", "Deposit failed: " + e.getMessage());
-        }
-
-        return response;
-    }
-
-    /**
-     * Withdraw money from account
-     */
-    @Transactional
-    public Map<String, Object> withdraw(Long accountId, BigDecimal amount, String reference) {
-        Map<String, Object> response = new HashMap<>();
-
-        try {
-            BankAccount account = bankAccountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Account not found"));
-
-            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                response.put("success", false);
-                response.put("message", "Amount must be greater than zero");
-                return response;
-            }
-
-            BigDecimal availableBalance = account.getBalance().add(account.getOverdraftLimit());
-            if (availableBalance.compareTo(amount) < 0) {
-                response.put("success", false);
-                response.put("message", "Insufficient funds");
-                return response;
-            }
-
-            if (!account.getStatus().equals("ACTIVE")) {
-                response.put("success", false);
-                response.put("message", "Account is not active");
-                return response;
-            }
-
-            // Create transaction
-            TransactionLog transaction = new TransactionLog();
-            transaction.setFromAccount(account);
-            transaction.setAmount(amount);
-            transaction.setType("WITHDRAWAL");
-            transaction.setStatus("COMPLETED");
-            transaction.setTransactionId("WTH-" + UUID.randomUUID().toString().substring(0, 12).toUpperCase());
-            transaction.setReference(reference);
-            transaction.setCompletedDate(LocalDateTime.now());
-
-            // Fee for withdrawal
-            BigDecimal fee = new BigDecimal("0.50");
-            transaction.setFee(fee);
-
-            // Update balance
-            account.setBalance(account.getBalance().subtract(amount).subtract(fee));
-            account.setLastTransactionAt(LocalDateTime.now());
-
-            // Save
-            transactionLogRepository.save(transaction);
-            bankAccountRepository.save(account);
-
-            try {
-                String blockchainPayload = blockchainService.recordTransaction(transaction);
-                String hash = blockchainPayload != null && blockchainPayload.length() > 128
-                        ? blockchainPayload.substring(0, 128) : blockchainPayload;
-                transaction.setBlockchainHash(hash);
-                transactionLogRepository.save(transaction);
-            } catch (Exception blockchainException) {
-                String errMsg = blockchainException.getMessage() != null ? blockchainException.getMessage() : "Unknown error";
-                transaction.setDescription("Blockchain sync failed: " + errMsg.substring(0, Math.min(errMsg.length(), 400)));
-                transactionLogRepository.save(transaction);
-            }
-
-            // Audit
-            auditService.logAction(account.getUser(), "WITHDRAWAL", "TRANSACTION", transaction.getId().toString(), "SUCCESS");
-
-            response.put("success", true);
-            response.put("message", "Withdrawal completed");
-            response.put("transactionId", transaction.getTransactionId());
-            response.put("newBalance", account.getBalance());
-            response.put("fee", fee);
-
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "Withdrawal failed: " + e.getMessage());
         }
 
         return response;
@@ -320,6 +269,23 @@ public class BankingService {
                 tx.put("reference", log.getReference());
                 tx.put("description", log.getDescription());
                 tx.put("blockchainHash", log.getBlockchainHash());
+                tx.put("digitalSignature", log.getDigitalSignature());
+                tx.put("publicKey", log.getPublicKey());
+                tx.put("transactionHash", log.getTransactionHash());
+                tx.put("signatureVerified", log.getSignatureVerified());
+                tx.put("signatureAlgorithm", log.getSignatureAlgorithm());
+
+                String senderStr = log.getFromAccount() != null
+                    ? (log.getFromAccount().getUser() != null ? log.getFromAccount().getUser().getName() : log.getFromAccount().getAccountNumber())
+                    : "Deposit / External";
+                String receiverStr = log.getToAccount() != null
+                    ? (log.getToAccount().getUser() != null ? log.getToAccount().getUser().getName() : log.getToAccount().getAccountNumber())
+                    : "Withdrawal / External";
+
+                tx.put("sender", senderStr);
+                tx.put("receiver", receiverStr);
+                tx.put("fromAccountNumber", log.getFromAccount() != null ? log.getFromAccount().getAccountNumber() : "N/A");
+                tx.put("toAccountNumber", log.getToAccount() != null ? log.getToAccount().getAccountNumber() : "N/A");
 
                 if (log.getFromAccount() != null && log.getFromAccount().getId().equals(accountId)) {
                     tx.put("direction", "OUT");

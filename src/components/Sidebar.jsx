@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, LogOut, Wallet, Send, Download, Upload, Menu, X,
-  User, ShieldCheck, Link as LinkIcon, History, Shield, Zap, Award, Lock
+  LayoutDashboard, LogOut, Wallet, Send, Download, Menu, X,
+  User, ShieldCheck, Link as LinkIcon, History, Shield, Zap, Award, Lock, Sparkles, Globe
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -26,91 +26,130 @@ export default function Sidebar() {
     { icon: LayoutDashboard, label: 'Dashboard',      path: '/dashboard' },
     { icon: Wallet,          label: 'Banking',         path: '/banking' },
     { icon: Send,            label: 'Transfer',        path: '/transfer' },
+    { icon: Globe,           label: 'International',   path: '/international' },
     { icon: Download,        label: 'Deposit',         path: '/deposit' },
-    { icon: Upload,          label: 'Withdraw',        path: '/withdraw' },
     { icon: History,         label: 'Transactions',    path: '/transactions' },
     { icon: Zap,             label: 'Smart Transfers', path: '/smart-transfers' },
     { icon: Award,           label: 'Financial Score', path: '/financial-score' },
-    { icon: Lock,            label: 'Security',        path: '/security' },
+    { icon: Lock,            label: 'Security & 2FA',  path: '/security' },
+    { icon: Sparkles,        label: 'Appearance',      path: '/settings' },
     { icon: LinkIcon,        label: 'Blockchain',      path: '/blockchain' },
-    { icon: ShieldCheck,     label: 'KYC',             path: '/kyc' },
+    { icon: ShieldCheck,     label: 'KYC Verification',path: '/kyc' },
     { icon: User,            label: 'Profile',         path: '/profile' },
-    ...(role === 'ROLE_ADMIN' ? [{ icon: Shield, label: 'Admin Panel', path: '/admin' }] : []),
+    ...(role === 'ROLE_ADMIN' || role === 'ROLE_SUPER_ADMIN' ? [{ icon: Shield, label: 'Admin Portal', path: '/admin/dashboard' }] : []),
   ];
 
-  const NavButton = ({ item }) => (
-    <button
-      onClick={() => { navigate(item.path); setOpen(false); }}
-      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all group ${
-        isActive(item.path)
-          ? 'bg-[#0B0F14] text-[#00F0FF] border-l-2 border-[#00F0FF] pl-3.5 shadow-[inset_0px_0px_10px_rgba(0,240,255,0.08)]'
-          : 'text-[#A0AEC0] hover:text-[#E8EEF7] hover:bg-[#252C3C]'
-      } ${item.label === 'Admin Panel' ? '!text-[#FF006E] hover:!bg-[#FF006E]/10' : ''}`}
-    >
-      <item.icon className={`w-4 h-4 shrink-0 ${isActive(item.path) ? 'text-[#00F0FF] drop-shadow-[0_0_6px_rgba(0,240,255,0.8)]' : ''} ${item.label === 'Admin Panel' ? '!text-[#FF006E]' : ''}`} />
-      <span className="font-medium tracking-wide">{item.label}</span>
-    </button>
-  );
+  const NavButton = ({ item }) => {
+    const active = isActive(item.path);
+    return (
+      <button
+        onClick={() => { navigate(item.path); setOpen(false); }}
+        className={`w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all group border-l-[3px] cursor-pointer ${
+          active
+            ? 'shadow-md'
+            : 'border-transparent hover:opacity-90'
+        } ${item.label === 'Admin Portal' ? '!text-[var(--accent-primary)]' : ''}`}
+        style={
+          active
+            ? {
+                background: 'var(--nav-active-bg)',
+                borderColor: 'var(--nav-active-border)',
+                color: 'var(--nav-active-text)',
+              }
+            : {
+                color: 'var(--text-secondary)',
+              }
+        }
+      >
+        <item.icon className="w-[18px] h-[18px] shrink-0 transition-transform group-hover:scale-110"
+                   style={{ color: active ? 'var(--accent-primary)' : 'var(--text-muted)' }} />
+        <span className="tracking-wide truncate">{item.label}</span>
+      </button>
+    );
+  };
 
   return (
     <>
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed top-4 left-4 z-50 md:hidden p-2 bg-[#1A1F2E] rounded-lg text-[#00F0FF] border border-[#00F0FF]/20"
+        className="fixed top-4 left-4 z-50 md:hidden p-2.5 rounded-xl border shadow-lg cursor-pointer"
+        style={{
+          background: 'var(--bg-elevated)',
+          color: 'var(--accent-primary)',
+          borderColor: 'var(--border-color)',
+        }}
       >
         {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>
 
       {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-[#1A1F2E] to-[#0B0F14] border-r border-[#00F0FF]/10 flex flex-col z-40 transition-transform duration-300 ${
-        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}>
+      <div
+        className={`fixed left-0 top-0 h-screen w-[280px] border-r flex flex-col z-40 transition-transform duration-300 ${
+          open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+        style={{
+          background: 'var(--sidebar-bg)',
+          borderColor: 'var(--border-color)',
+        }}
+      >
         {/* Logo */}
-        <div className="p-5 border-b border-[#00F0FF]/10 flex flex-col items-center">
-          <div className="w-14 h-14 bg-gradient-to-br from-[#00F0FF] to-[#00B8CC] rounded-xl flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(0,240,255,0.3)]">
-            <img src="/vaultchain-logo.svg" alt="VaultChain" className="w-9 h-9 brightness-0" onError={e => e.target.style.display='none'} />
-            <Shield className="w-7 h-7 text-[#0B0F14] absolute" style={{display:'none'}} />
+        <div className="p-5 border-b flex flex-col items-center"
+             style={{ borderColor: 'var(--border-color)' }}>
+          <div className="w-13 h-13 rounded-2xl border p-2 flex items-center justify-center mb-2.5 shadow-md"
+               style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-color)' }}>
+            <img src="/vaultchain-logo.svg" alt="VaultChain Logo" className="w-9 h-9 object-contain" />
           </div>
-          <h1 className="text-lg font-black tracking-[0.25em] text-[#00F0FF]">SOVEREIGN</h1>
-          <p className="text-[10px] uppercase text-[#718096] tracking-widest mt-0.5">Banking Platform v2.0</p>
+          <h1 className="text-lg font-black tracking-[0.22em] leading-tight flex items-center"
+              style={{ color: 'var(--text-primary)' }}>
+            VAULT<span className="text-transparent bg-clip-text"
+                        style={{ backgroundImage: 'var(--btn-primary-bg)' }}>CHAIN</span>
+          </h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="text-[10px] uppercase font-bold tracking-[0.25em]"
+                  style={{ color: 'var(--accent-primary)' }}>FINTECH 3.0</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </div>
         </div>
 
         {/* User Badge */}
-        <div className="px-4 py-3 border-b border-white/5">
-          <div className="flex items-center gap-3 bg-[#0B0F14]/50 rounded-lg px-3 py-2.5">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00F0FF] to-[#FF006E] flex items-center justify-center text-[#0B0F14] font-bold text-xs shrink-0">
+        <div className="px-3.5 py-3 border-b" style={{ borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 border shadow-sm"
+               style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border-color)' }}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-extrabold text-xs shrink-0 shadow-sm"
+                 style={{ background: 'var(--btn-primary-bg)' }}>
               {initials}
             </div>
-            <div className="min-w-0">
-              <p className="text-[#E8EEF7] text-xs font-semibold truncate">{name || 'User'}</p>
-              <p className="text-[#718096] text-[10px] truncate">{email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold truncate leading-tight" style={{ color: 'var(--text-primary)' }}>{name || 'User'}</p>
+              <p className="text-[10px] truncate mt-0.5 leading-tight font-mono" style={{ color: 'var(--text-muted)' }}>{email}</p>
             </div>
           </div>
         </div>
 
-        {/* Nav */}
-        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-0.5">
+        {/* Navigation Items */}
+        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-1 custom-scrollbar">
           {navItems.map(item => <NavButton key={item.path} item={item} />)}
         </div>
 
-        {/* Logout */}
-        <div className="p-3 border-t border-[#00F0FF]/10">
+        {/* Sign Out */}
+        <div className="p-3 border-t" style={{ borderColor: 'var(--border-color)', background: 'var(--bg-primary)' }}>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-[#A0AEC0] hover:text-[#FF006E] hover:bg-[#FF006E]/10 transition-all"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20 cursor-pointer"
+            style={{ color: 'var(--text-secondary)' }}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            <span className="font-medium">Sign Out</span>
+            <span>Sign Out</span>
           </button>
         </div>
       </div>
 
       {/* Mobile overlay */}
-      {open && <div className="fixed inset-0 bg-black/50 md:hidden z-30" onClick={() => setOpen(false)} />}
+      {open && <div className="fixed inset-0 bg-black/70 md:hidden z-30 backdrop-blur-sm" onClick={() => setOpen(false)} />}
 
       {/* Desktop spacer */}
-      <div className="hidden md:block w-64 shrink-0" />
+      <div className="hidden md:block w-[280px] shrink-0 pointer-events-none" aria-hidden="true" />
     </>
   );
 }

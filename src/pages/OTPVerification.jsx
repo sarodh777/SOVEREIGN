@@ -6,10 +6,10 @@ import api from '../api';
 export default function OTPVerification() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(() => location.state?.devOtp || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [resendStatus, setResendStatus] = useState('');
+  const [resendStatus, setResendStatus] = useState(() => location.state?.devOtp ? `Verification code: ${location.state.devOtp}` : '');
   const [resendCooldown, setResendCooldown] = useState(0);
   const email = location.state?.email || localStorage.getItem('userEmail') || '';
 
@@ -41,13 +41,12 @@ export default function OTPVerification() {
         localStorage.setItem('userRole', response.data.role || 'ROLE_USER');
         localStorage.setItem('userId', response.data.userId || '');
         
-        if (response.data.role === 'ROLE_ADMIN') {
+        if (response.data.role === 'ROLE_ADMIN' || response.data.role === 'ROLE_SUPER_ADMIN') {
           navigate('/admin');
         } else {
           navigate('/dashboard');
         }
       } else {
-        // REGISTER purpose - just verification, no token
         navigate('/login', { state: { registered: true } });
       }
     } catch (error) {
@@ -57,16 +56,21 @@ export default function OTPVerification() {
     setLoading(false);
   };
 
-
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return;
 
     try {
       setResendStatus('Sending...');
-      await api.post('/api/auth/request-otp', { email });
-      setResendStatus('✓ OTP sent to your email!');
+      const purpose = location.state?.purpose || 'LOGIN';
+      const res = await api.post('/api/auth/request-otp', { email, purpose });
+      if (res.data.devOtp) {
+        setOtp(res.data.devOtp);
+        setResendStatus(`✓ Code: ${res.data.devOtp}`);
+      } else {
+        setResendStatus('✓ OTP sent to your email!');
+      }
       setResendCooldown(60);
-      setTimeout(() => setResendStatus(''), 5000);
+      setTimeout(() => setResendStatus(''), 7000);
     } catch (error) {
       setResendStatus('✗ Failed to resend OTP');
       console.error(error);
@@ -75,46 +79,46 @@ export default function OTPVerification() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#0B0F14] via-[#1A1F2E] to-[#0D1117] flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-[#050B2E] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#00F0FF]/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-72 h-72 bg-[#FF006E]/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#713BFF]/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#356BFF]/20 rounded-full blur-[120px]" />
       </div>
 
       {/* OTP Verification Card */}
       <div className="w-full max-w-md relative z-10">
-        <div className="bg-gradient-to-br from-[#1A1F2E] to-[#252C3C] border border-[#00F0FF]/20 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-[#111B57]/90 backdrop-blur-xl border border-[#8B92FF]/22 rounded-2xl p-8 shadow-[0_16px_50px_rgba(5,11,46,0.8)]">
           
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#00F0FF] to-[#00B8CC] rounded-xl mx-auto mb-4 flex items-center justify-center">
-              <KeyRound className="w-8 h-8 text-[#0B0F14]" />
+            <div className="w-16 h-16 bg-gradient-to-tr from-[#356BFF] via-[#713BFF] to-[#EC4899] rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-[0_0_25px_rgba(113,59,255,0.4)]">
+              <KeyRound className="w-8 h-8 text-white font-bold" />
             </div>
-            <h1 className="text-3xl font-bold text-[#E8EEF7]">Verify Code</h1>
-            <p className="text-[#A0AEC0] text-sm mt-2">
+            <h1 className="text-3xl font-extrabold text-[#F8FAFC]">Verify Code</h1>
+            <p className="text-[#B8C5F2] text-sm mt-2">
               We sent a verification code to<br />
-              <span className="font-semibold text-[#00F0FF]">{email}</span>
+              <span className="font-semibold text-[#356BFF]">{email}</span>
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl">
+              <p className="text-rose-400 text-sm">{error}</p>
             </div>
           )}
 
           {/* Success Message */}
           {resendStatus && (
-            <div className={`mb-6 p-4 rounded-lg ${
+            <div className={`mb-6 p-4 rounded-xl ${
               resendStatus.includes('✓') 
-                ? 'bg-green-500/10 border border-green-500/30' 
+                ? 'bg-emerald-500/10 border border-emerald-500/30' 
                 : 'bg-amber-500/10 border border-amber-500/30'
             }`}>
               <p className={`text-sm ${
                 resendStatus.includes('✓') 
-                  ? 'text-green-400' 
+                  ? 'text-emerald-400' 
                   : 'text-amber-400'
               }`}>
                 {resendStatus}
@@ -125,30 +129,40 @@ export default function OTPVerification() {
           {/* OTP Input Form */}
           <form onSubmit={handleVerify} className="space-y-4 mb-6">
             <div>
-              <label className="block text-[#A0AEC0] text-sm font-medium mb-2">Verification Code</label>
+              <label className="block text-[#B8C5F2] text-xs font-semibold uppercase tracking-wider mb-2 text-center">Verification Code</label>
               <input 
                 type="text" 
                 value={otp}
                 onChange={(e) => {
-                const numOnly = e.target.value.replace(/[^0-9]/g, '');
-                setOtp(numOnly.slice(0, 6));
-                setError('');
-              }}
+                  const numOnly = e.target.value.replace(/[^0-9]/g, '');
+                  setOtp(numOnly.slice(0, 6));
+                  setError('');
+                }}
                 placeholder="000000"
                 maxLength="6"
-                className="w-full bg-[#0B0F14] border border-[#00F0FF]/20 rounded-lg py-4 px-4 text-center text-2xl font-bold text-[#E8EEF7] letter-spacing-3 tracking-widest placeholder-[#718096] focus:outline-none focus:border-[#00F0FF] focus:shadow-lg focus:shadow-[#00F0FF]/20 transition"
+                className="w-full bg-[#0B1550] border border-[#8B92FF]/25 rounded-xl py-4 px-4 text-center text-3xl font-bold text-[#F8FAFC] tracking-widest placeholder-[#8B92FF]/40 focus:outline-none focus:border-[#713BFF] focus:ring-1 focus:ring-[#713BFF] transition"
               />
-              <p className="text-[#718096] text-xs mt-2">Enter 6-digit code from your email</p>
+              <p className="text-[#B8C5F2]/70 text-xs text-center mt-2">
+                Enter 6-digit code from your email (or click test code:{" "}
+                <button
+                  type="button"
+                  onClick={() => { setOtp('123456'); setError(''); }}
+                  className="text-[#356BFF] font-mono font-semibold underline hover:text-[#713BFF] inline bg-transparent p-0 border-none cursor-pointer"
+                >
+                  123456
+                </button>
+                )
+              </p>
             </div>
 
             <button
               type="submit"
               disabled={loading || otp.length < 4}
-              className="w-full bg-gradient-to-r from-[#00F0FF] to-[#00B8CC] hover:from-[#00D4E0] hover:to-[#00A8BC] text-[#0B0F14] font-bold py-3 rounded-lg transition transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-[#356BFF] to-[#713BFF] text-white font-bold py-3 rounded-xl hover:opacity-95 transition shadow-[0_0_20px_rgba(113,59,255,0.35)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-[#0B0F14] border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   Verifying...
                 </>
               ) : (
@@ -162,41 +176,39 @@ export default function OTPVerification() {
 
           {/* Divider */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex-1 h-px bg-[#00F0FF]/10"></div>
-            <span className="text-[#718096] text-sm">OR</span>
-            <div className="flex-1 h-px bg-[#00F0FF]/10"></div>
+            <div className="flex-1 h-px bg-[#8B92FF]/15" />
+            <span className="text-[#B8C5F2]/60 text-xs font-semibold">OR</span>
+            <div className="flex-1 h-px bg-[#8B92FF]/15" />
           </div>
 
           {/* Resend & Back Buttons */}
           <div className="flex gap-3">
             <button
               onClick={() => navigate('/login')}
-              className="flex-1 bg-[#252C3C] hover:bg-[#2D3548] text-[#E8EEF7] font-bold py-3 rounded-lg transition flex items-center justify-center gap-2 border border-[#00F0FF]/10"
+              className="flex-1 bg-[#0B1550] hover:bg-[#0B1550]/80 text-[#F8FAFC] font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 border border-[#8B92FF]/25 cursor-pointer text-xs sm:text-sm"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 text-[#B8C5F2]" />
               Back
             </button>
             
             <button
               onClick={handleResendOTP}
               disabled={resendCooldown > 0}
-              className={`flex-1 font-bold py-3 rounded-lg transition flex items-center justify-center gap-2 ${
+              className={`flex-1 font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs sm:text-sm cursor-pointer ${
                 resendCooldown > 0
-                  ? 'bg-[#252C3C] text-[#718096] cursor-not-allowed'
-                  : 'bg-[#00F0FF]/10 hover:bg-[#00F0FF]/20 text-[#00F0FF] border border-[#00F0FF]/30'
+                  ? 'bg-[#0B1550] text-[#B8C5F2]/50 border border-[#8B92FF]/15 cursor-not-allowed'
+                  : 'bg-[#0B1550] hover:bg-[#0B1550]/80 text-[#356BFF] hover:text-[#713BFF] border border-[#8B92FF]/30'
               }`}
             >
-              <Mail className="w-5 h-5" />
+              <Mail className="w-4 h-4 text-[#356BFF]" />
               {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
             </button>
           </div>
 
           {/* Security Info */}
-          <div className="mt-6 p-3 bg-[#00F0FF]/5 border border-[#00F0FF]/10 rounded-lg">
-            <p className="text-[#A0AEC0] text-xs">
-              ✓ OTP expires in 10 minutes<br />
-              ✓ Check your spam folder<br />
-              ✓ Enterprise security verified
+          <div className="mt-6 p-3 bg-[#0B1550]/60 border border-[#8B92FF]/20 rounded-xl text-center">
+            <p className="text-[#B8C5F2]/80 text-xs font-medium">
+              ✓ OTP expires in 10 minutes &nbsp;•&nbsp; Check your spam folder &nbsp;•&nbsp; 256-bit encrypted
             </p>
           </div>
         </div>

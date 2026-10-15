@@ -18,7 +18,6 @@ public class FinancialScoreService {
     public static final int DELTA_SMART_SUCCESS      = +10;
     public static final int DELTA_SMART_FAILED       = -20;
     public static final int DELTA_DEPOSIT            = +3;
-    public static final int DELTA_WITHDRAWAL         = +2;
     public static final int DELTA_KYC_VERIFIED       = +30;
 
     /** Get or initialise a score record for a user */

@@ -47,14 +47,14 @@ public class SmartTransferService {
         rule.setFrequency(String.valueOf(payload.getOrDefault("frequency", "MONTHLY")));
         rule.setDescription(String.valueOf(payload.getOrDefault("description", "")));
 
-        if (payload.containsKey("conditionValue") && payload.get("conditionValue") != null)
-            rule.setConditionValue(new BigDecimal(String.valueOf(payload.get("conditionValue"))));
+        if (payload.containsKey("conditionValue") && payload.get("conditionValue") != null && !String.valueOf(payload.get("conditionValue")).trim().isEmpty())
+            rule.setConditionValue(new BigDecimal(String.valueOf(payload.get("conditionValue")).trim()));
 
-        if (payload.containsKey("scheduleDay") && payload.get("scheduleDay") != null)
-            rule.setScheduleDay(Integer.parseInt(String.valueOf(payload.get("scheduleDay"))));
+        if (payload.containsKey("scheduleDay") && payload.get("scheduleDay") != null && !String.valueOf(payload.get("scheduleDay")).trim().isEmpty())
+            rule.setScheduleDay(Integer.parseInt(String.valueOf(payload.get("scheduleDay")).trim()));
 
-        if (payload.containsKey("startDate") && payload.get("startDate") != null)
-            rule.setStartDate(LocalDate.parse(String.valueOf(payload.get("startDate"))));
+        if (payload.containsKey("startDate") && payload.get("startDate") != null && !String.valueOf(payload.get("startDate")).trim().isEmpty())
+            rule.setStartDate(LocalDate.parse(String.valueOf(payload.get("startDate")).trim()));
 
         rule.setStatus("ACTIVE");
         rule.setNextExecution(computeNextExecution(rule));
@@ -70,15 +70,22 @@ public class SmartTransferService {
         if (!rule.getUser().getId().equals(user.getId()))
             throw new RuntimeException("Access denied");
 
-        if (payload.containsKey("ruleName")) rule.setRuleName(String.valueOf(payload.get("ruleName")));
-        if (payload.containsKey("amount"))   rule.setAmount(new BigDecimal(String.valueOf(payload.get("amount"))));
-        if (payload.containsKey("conditionType")) rule.setConditionType(String.valueOf(payload.get("conditionType")));
-        if (payload.containsKey("conditionValue") && payload.get("conditionValue") != null)
-            rule.setConditionValue(new BigDecimal(String.valueOf(payload.get("conditionValue"))));
-        if (payload.containsKey("frequency")) rule.setFrequency(String.valueOf(payload.get("frequency")));
-        if (payload.containsKey("scheduleDay") && payload.get("scheduleDay") != null)
-            rule.setScheduleDay(Integer.parseInt(String.valueOf(payload.get("scheduleDay"))));
-        if (payload.containsKey("description")) rule.setDescription(String.valueOf(payload.get("description")));
+        if (payload.containsKey("ruleName") && payload.get("ruleName") != null) 
+            rule.setRuleName(String.valueOf(payload.get("ruleName")).trim());
+        if (payload.containsKey("amount") && payload.get("amount") != null && !String.valueOf(payload.get("amount")).trim().isEmpty())   
+            rule.setAmount(new BigDecimal(String.valueOf(payload.get("amount")).trim()));
+        if (payload.containsKey("conditionType") && payload.get("conditionType") != null) 
+            rule.setConditionType(String.valueOf(payload.get("conditionType")));
+        if (payload.containsKey("conditionValue") && payload.get("conditionValue") != null && !String.valueOf(payload.get("conditionValue")).trim().isEmpty())
+            rule.setConditionValue(new BigDecimal(String.valueOf(payload.get("conditionValue")).trim()));
+        if (payload.containsKey("frequency") && payload.get("frequency") != null) 
+            rule.setFrequency(String.valueOf(payload.get("frequency")));
+        if (payload.containsKey("scheduleDay") && payload.get("scheduleDay") != null && !String.valueOf(payload.get("scheduleDay")).trim().isEmpty())
+            rule.setScheduleDay(Integer.parseInt(String.valueOf(payload.get("scheduleDay")).trim()));
+        if (payload.containsKey("startDate") && payload.get("startDate") != null && !String.valueOf(payload.get("startDate")).trim().isEmpty())
+            rule.setStartDate(LocalDate.parse(String.valueOf(payload.get("startDate")).trim()));
+        if (payload.containsKey("description") && payload.get("description") != null) 
+            rule.setDescription(String.valueOf(payload.get("description")));
 
         rule.setNextExecution(computeNextExecution(rule));
         rule.setUpdatedAt(LocalDateTime.now());
@@ -174,6 +181,21 @@ public class SmartTransferService {
                                 String.valueOf(result.get("transactionId"))
                             );
                         } catch (Exception ignored) {}
+
+                        // Notify recipient
+                        if (rule.getToAccount() != null && rule.getToAccount().getUser() != null && rule.getToAccount().getUser().getEmail() != null) {
+                            try {
+                                emailService.sendTransactionConfirmationReceiver(
+                                    rule.getToAccount().getUser().getEmail(),
+                                    rule.getToAccount().getUser().getName(),
+                                    rule.getUser().getName(),
+                                    rule.getAmount(),
+                                    String.valueOf(result.get("transactionId")),
+                                    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")),
+                                    (String) result.get("blockchainHash")
+                                );
+                            } catch (Exception ignored) {}
+                        }
                     } else {
                         exec.setStatus("FAILED");
                         exec.setFailureReason(String.valueOf(result.get("message")));

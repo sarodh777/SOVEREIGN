@@ -1,11 +1,11 @@
-# Sovereign Ledger Backend - Spring Boot Application Properties Template
+# VAULTCHAIN Backend - Spring Boot Application Properties Template
 # Place this in your backend's src/main/resources/ folder.
 
 # Spring Boot Server Port
 server.port=8080
 
 # Database Configuration (Example: PostgreSQL)
-spring.datasource.url=jdbc:postgresql://localhost:5432/sovereign_ledger
+spring.datasource.url=jdbc:postgresql://localhost:5432/vaultchain
 spring.datasource.username=postgres
 spring.datasource.password=password
 spring.jpa.hibernate.ddl-auto=update
@@ -15,7 +15,7 @@ spring.jpa.hibernate.ddl-auto=update
 spring.mail.host=smtp.gmail.com
 spring.mail.port=587
 spring.mail.username=sarodhuilgol@gmail.com
-spring.mail.password=zcjzckjbgrgzidbw
+spring.mail.password=zyhsgiyidnqzfaec
 spring.mail.properties.mail.smtp.auth=true
 spring.mail.properties.mail.smtp.starttls.enable=true
 spring.mail.properties.mail.smtp.starttls.required=true

@@ -44,6 +44,25 @@ public class TransactionLog {
     @Column(length = 128)
     private String blockchainHash; // Hash when recorded on blockchain later
 
+    @Column(length = 1000)
+    private String digitalSignature;
+
+    @Column(length = 1000)
+    private String publicKey;
+
+    @Column(length = 128)
+    private String transactionHash;
+
+    private Boolean signatureVerified = false;
+
+    private LocalDateTime verificationTimestamp;
+
+    @Column(length = 64)
+    private String nonce;
+
+    @Column(length = 64)
+    private String signatureAlgorithm = "ECDSA-P256-SHA256";
+
     private LocalDateTime transactionDate = LocalDateTime.now();
     private LocalDateTime completedDate;
 
@@ -105,6 +124,27 @@ public class TransactionLog {
 
     public String getFailureReason() { return failureReason; }
     public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
+
+    public String getDigitalSignature() { return digitalSignature; }
+    public void setDigitalSignature(String digitalSignature) { this.digitalSignature = digitalSignature; }
+
+    public String getPublicKey() { return publicKey; }
+    public void setPublicKey(String publicKey) { this.publicKey = publicKey; }
+
+    public String getTransactionHash() { return transactionHash; }
+    public void setTransactionHash(String transactionHash) { this.transactionHash = transactionHash; }
+
+    public Boolean getSignatureVerified() { return signatureVerified; }
+    public void setSignatureVerified(Boolean signatureVerified) { this.signatureVerified = signatureVerified; }
+
+    public LocalDateTime getVerificationTimestamp() { return verificationTimestamp; }
+    public void setVerificationTimestamp(LocalDateTime verificationTimestamp) { this.verificationTimestamp = verificationTimestamp; }
+
+    public String getNonce() { return nonce; }
+    public void setNonce(String nonce) { this.nonce = nonce; }
+
+    public String getSignatureAlgorithm() { return signatureAlgorithm; }
+    public void setSignatureAlgorithm(String signatureAlgorithm) { this.signatureAlgorithm = signatureAlgorithm; }
 
     public String getMetadata() { return metadata; }
     public void setMetadata(String metadata) { this.metadata = metadata; }
